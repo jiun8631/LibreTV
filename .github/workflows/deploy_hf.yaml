@@ -13,7 +13,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          lfs: true  # 啟用 LFS 以拉取大檔案
+          lfs: true  # 啟用 LFS 以拉取歷史大檔案
 
       - name: Set up Git
         run: |
@@ -23,7 +23,7 @@ jobs:
       - name: Install and Configure Git LFS
         run: |
           git lfs install
-          # 創建/更新 .gitattributes 以追蹤二進制/大檔案類型
+          # 更新 .gitattributes 以追蹤二進制/大檔案類型（包括問題檔案 *.psd）
           echo '*.psd filter=lfs diff=lfs merge=lfs -text' >> .gitattributes
           echo '*.jpg filter=lfs diff=lfs merge=lfs -text' >> .gitattributes
           echo '*.jpeg filter=lfs diff=lfs merge=lfs -text' >> .gitattributes
@@ -43,7 +43,14 @@ jobs:
           echo '*.json -filter -diff -merge -text' >> .gitattributes
           echo '*.txt -filter -diff -merge -text' >> .gitattributes
           git add .gitattributes
-          git commit -m "Configure Git LFS for binary files" || echo "No changes to commit for .gitattributes"
+          git commit -m "Configure Git LFS for binary files including .psd" || echo "No changes to commit for .gitattributes"
+
+      - name: Migrate Existing Binary Files to LFS
+        run: |
+          # 遷移歷史中的二進制檔案到 LFS（關鍵步驟，解決預存在檔案問題）
+          git lfs migrate import --include="*.psd,*.jpg,*.jpeg,*.png,*.gif,*.webp,*.svg,*.mp4,*.pdf,*.zip,*.woff2" --everything --verbose
+          git add .
+          git commit -m "Migrate binary files to Git LFS" || echo "No migration changes to commit"
 
       - name: Add Hugging Face Space Remote
         env:
@@ -51,14 +58,11 @@ jobs:
           HF_USER: hang3976
           SPACE_NAME: test
         run: |
-          # 檢查 HF_TOKEN 是否存在
           if [ -z "$HF_TOKEN" ]; then
             echo "Error: HF_TOKEN is not set"
             exit 1
           fi
-          # 正確的 URL 格式，使用雙引號允許變數擴展
           git remote add hf_space "https://${HF_USER}:${HF_TOKEN}@huggingface.co/spaces/${HF_USER}/${SPACE_NAME}" || git remote set-url hf_space "https://${HF_USER}:${HF_TOKEN}@huggingface.co/spaces/${HF_USER}/${SPACE_NAME}"
-          # 驗證遠程 URL（不顯示 Token）
           git remote -v
 
       - name: Push to Hugging Face Space
@@ -66,5 +70,5 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           git add .
-          git commit -m "Deploy from GitHub Action to Hugging Face Space with Git LFS" || echo "No changes to commit"
+          git commit -m "Deploy from GitHub Action to Hugging Face Space with Git LFS migration" || echo "No changes to commit"
           git push --force hf_space main
