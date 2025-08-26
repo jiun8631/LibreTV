@@ -30,8 +30,10 @@ jobs:
             echo "Error: HF_TOKEN is not set"
             exit 1
           fi
-          # 正確的 URL 格式，使用 Bash 變數擴展
-          git remote add hf_space "https://`\({HF_USER}:\)`{HF_TOKEN}@huggingface.co/spaces/`\({HF_USER}/\)`{SPACE_NAME}" || git remote set-url hf_space "https://`\({HF_USER}:\)`{HF_TOKEN}@huggingface.co/spaces/`\({HF_USER}/\)`{SPACE_NAME}"
+          # 正確的 URL 格式，使用雙引號允許變數擴展
+          git remote add hf_space "https://${HF_USER}:${HF_TOKEN}@huggingface.co/spaces/${HF_USER}/${SPACE_NAME}" || git remote set-url hf_space "https://${HF_USER}:${HF_TOKEN}@huggingface.co/spaces/${HF_USER}/${SPACE_NAME}"
+          # 驗證遠程 URL（不顯示 Token，但確認設置）
+          git remote -v
 
       - name: Push to Hugging Face Space
         env:
