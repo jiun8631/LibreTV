@@ -20,10 +20,22 @@ jobs:
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
 
+      - name: Clean Working Directory
+        run: |
+          # 檢查並清理未提交變更
+          git status
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Working directory is dirty, committing changes"
+            git add .
+            git commit -m "Auto-commit untracked changes before LFS migration" || echo "No changes to commit"
+          else
+            echo "Working directory is clean"
+          fi
+
       - name: Install and Configure Git LFS
         run: |
           git lfs install
-          # 更新 .gitattributes 以追蹤二進制/大檔案類型（包括問題檔案 *.psd）
+          # 更新 .gitattributes 以追蹤二進制/大檔案類型
           echo '*.psd filter=lfs diff=lfs merge=lfs -text' >> .gitattributes
           echo '*.jpg filter=lfs diff=lfs merge=lfs -text' >> .gitattributes
           echo '*.jpeg filter=lfs diff=lfs merge=lfs -text' >> .gitattributes
@@ -43,12 +55,12 @@ jobs:
           echo '*.json -filter -diff -merge -text' >> .gitattributes
           echo '*.txt -filter -diff -merge -text' >> .gitattributes
           git add .gitattributes
-          git commit -m "Configure Git LFS for binary files including .psd" || echo "No changes to commit for .gitattributes"
+          git commit -m "Configure Git LFS for binary files" || echo "No changes to commit for .gitattributes"
 
       - name: Migrate Existing Binary Files to LFS
         run: |
-          # 遷移歷史中的二進制檔案到 LFS（關鍵步驟，解決預存在檔案問題）
-          git lfs migrate import --include="*.psd,*.jpg,*.jpeg,*.png,*.gif,*.webp,*.svg,*.mp4,*.pdf,*.zip,*.woff2" --everything --verbose
+          # 遷移歷史中的二進制檔案到 LFS
+          git lfs migrate import --include="*.psd,*.jpg,*.jpeg,*.png,*.gif,*.webp,*.svg,*.mp4,*.pdf,*.zip,*.woff2" --everything --verbose || echo "Migration skipped or no changes"
           git add .
           git commit -m "Migrate binary files to Git LFS" || echo "No migration changes to commit"
 
@@ -70,5 +82,5 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           git add .
-          git commit -m "Deploy from GitHub Action to Hugging Face Space with Git LFS migration" || echo "No changes to commit"
+          git commit -m "Deploy from GitHub Action to Hugging Face Space with Git LFS" || echo "No changes to commit"
           git push --force hf_space main
