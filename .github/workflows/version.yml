@@ -1,11 +1,10 @@
 name: Bump version
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
+# on: 
+#  push:
+#    branches:
+#      - main
+#  workflow_dispatch:
 jobs:
   bump-version:
     if: github.repository == 'LibreSpark/LibreTV'
